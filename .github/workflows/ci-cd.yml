@@ -129,7 +129,7 @@ jobs:
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
-          heroku git:remote -a ${{ secrets.HEROKU_APP_NAME }}
+          heroku git:remote -a ${{ secrets.HEROKU_BACKEND_APP_NAME }}
           git push heroku release:main
 
   # Job 3: Deploy Frontend to Heroku

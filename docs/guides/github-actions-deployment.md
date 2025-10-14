@@ -174,7 +174,7 @@ heroku config -a assetbridge-frontend
 | Secret Name | Value | How to Get |
 |------------|-------|------------|
 | `HEROKU_API_KEY` | Your Heroku API key | Run `heroku auth:token` |
-| `HEROKU_APP_NAME` | Backend Heroku app name | The name you used (e.g., `assetbridge-backend`) |
+| `HEROKU_BACKEND_APP_NAME` | Backend Heroku app name | The name you used (e.g., `assetbridge-backend`) |
 | `HEROKU_FRONTEND_APP_NAME` | Frontend Heroku app name | The name you used (e.g., `assetbridge-frontend`) |
 | `HEROKU_EMAIL` | Your Heroku email | Email address of your Heroku account |
 | `BACKEND_API_URL` | Backend API URL | Full URL (e.g., `https://assetbridge-backend.herokuapp.com`) |

@@ -411,7 +411,11 @@ Key takeaways from debugging this issue:
 Ensure these secrets are configured in GitHub repository settings:
 
 - `HEROKU_API_KEY` - Your Heroku API key (found in Account Settings)
-- `HEROKU_APP_NAME` - The name of your Heroku application
+- `HEROKU_BACKEND_APP_NAME` - The name of your backend Heroku application (originally `HEROKU_APP_NAME`)
+- `HEROKU_FRONTEND_APP_NAME` - The name of your frontend Heroku application (added for dual-dyno deployment)
 - `HEROKU_EMAIL` - Your Heroku account email address
+- `BACKEND_API_URL` - Backend API URL for frontend environment variable
 
 Verify at: https://github.com/YasanthaHennayake/assetbridge/settings/secrets/actions
+
+**Note**: After resolving this bug, the secret `HEROKU_APP_NAME` was renamed to `HEROKU_BACKEND_APP_NAME` for consistency when dual-dyno deployment was implemented. Historical code examples in this document may reference the old name.
