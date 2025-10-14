@@ -51,27 +51,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Step 4: Run linting checks
+      # Step 4: Build shared package
+      # Must be built before tests run because backend and frontend depend on it
+      # The shared package contains TypeScript types used across the monorepo
+      - name: Build shared package
+        run: npm run build --workspace=@assetbridge/shared
+
+      # Step 5: Run linting checks
       # Ensures code follows style guidelines
       - name: Lint code
         run: npm run lint
 
-      # Step 5: Run backend tests
+      # Step 6: Run backend tests
       # Executes Jest tests for backend API
       - name: Run backend tests
         run: npm run test:backend
 
-      # Step 6: Run frontend tests
+      # Step 7: Run frontend tests
       # Executes Vitest tests for React components
       - name: Run frontend tests
         run: npm run test:frontend
 
-      # Step 7: Build backend
+      # Step 8: Build backend
       # Compiles TypeScript to JavaScript
       - name: Build backend
         run: npm run build:backend
 
-      # Step 8: Build frontend
+      # Step 9: Build frontend
       # Bundles React app for production
       - name: Build frontend
         run: npm run build:frontend
