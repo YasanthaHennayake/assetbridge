@@ -1,0 +1,35 @@
+{
+  "name": "assetbridge",
+  "version": "1.0.0",
+  "description": "A corporate-grade Procurement and Asset Management system",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "dev:backend": "npm run dev -w @assetbridge/backend",
+    "dev:frontend": "npm run dev -w @assetbridge/frontend",
+    "build:backend": "npm run build -w @assetbridge/backend",
+    "build:frontend": "npm run build -w @assetbridge/frontend",
+    "test:backend": "npm run test -w @assetbridge/backend",
+    "test:frontend": "npm run test -w @assetbridge/frontend"
+  },
+  "keywords": [
+    "procurement",
+    "asset-management",
+    "enterprise"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.1.6"
+  }
+}
