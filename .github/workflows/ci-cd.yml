@@ -98,13 +98,20 @@ jobs:
       # Step 1: Check out the code
       - name: Checkout code
         uses: actions/checkout@v3
-
-      # Step 2: Deploy to Heroku
-      # Uses third-party action to handle Heroku deployment
-      # Requires three secrets to be configured in GitHub repository settings
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.12.14
         with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}      # Heroku API key
-          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}    # Heroku app name
-          heroku_email: ${{ secrets.HEROKU_EMAIL }}          # Heroku account email
+          fetch-depth: 0  # Fetch all history for proper Heroku deployment
+
+      # Step 2: Install Heroku CLI
+      # Manually install Heroku CLI for more reliable deployment
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      # Step 3: Deploy to Heroku
+      # Uses Heroku CLI to deploy the application
+      # Requires HEROKU_API_KEY and HEROKU_APP_NAME secrets configured in GitHub
+      - name: Deploy to Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          heroku git:remote -a ${{ secrets.HEROKU_APP_NAME }}
+          git push heroku release:main
