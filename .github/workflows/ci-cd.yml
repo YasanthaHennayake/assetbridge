@@ -1,0 +1,104 @@
+# GitHub Actions CI/CD Pipeline
+#
+# This workflow automates testing and deployment for AssetBridge.
+#
+# Workflow Triggers:
+# - Push to 'main' or 'release' branches
+# - Pull requests targeting 'main' or 'release' branches
+#
+# Jobs:
+# 1. test: Runs on all triggers (push + PR)
+#    - Lints code
+#    - Runs unit tests for backend and frontend
+#    - Builds both backend and frontend
+#
+# 2. deploy: Runs only when pushing to 'release' branch (not on PRs)
+#    - Only runs if tests pass
+#    - Deploys to Heroku production environment
+
+name: CI/CD Pipeline
+
+# Define when this workflow should run
+on:
+  push:
+    branches: [main, release]  # Run on pushes to main or release
+  pull_request:
+    branches: [main, release]  # Run on PRs to main or release
+
+jobs:
+  # Job 1: Run tests and build
+  test:
+    name: Run Tests and Build
+    runs-on: ubuntu-latest  # Use latest Ubuntu runner
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'  # Use Node.js version 18
+          cache: 'npm'        # Cache npm dependencies for faster runs
+
+      # Step 3: Install all dependencies
+      # Using 'npm ci' instead of 'npm install' for:
+      # - Faster installation
+      # - Consistent installs (uses package-lock.json exactly)
+      # - Clean slate (removes node_modules first)
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run linting checks
+      # Ensures code follows style guidelines
+      - name: Lint code
+        run: npm run lint
+
+      # Step 5: Run backend tests
+      # Executes Jest tests for backend API
+      - name: Run backend tests
+        run: npm run test:backend
+
+      # Step 6: Run frontend tests
+      # Executes Vitest tests for React components
+      - name: Run frontend tests
+        run: npm run test:frontend
+
+      # Step 7: Build backend
+      # Compiles TypeScript to JavaScript
+      - name: Build backend
+        run: npm run build:backend
+
+      # Step 8: Build frontend
+      # Bundles React app for production
+      - name: Build frontend
+        run: npm run build:frontend
+
+  # Job 2: Deploy to Heroku
+  deploy:
+    name: Deploy to Heroku
+    needs: test                    # Only run if 'test' job succeeds
+    runs-on: ubuntu-latest
+
+    # Conditional execution:
+    # - Only run on 'release' branch
+    # - Only run on push events (not pull requests)
+    # This ensures deployment only happens when code is merged to release
+    if: github.ref == 'refs/heads/release' && github.event_name == 'push'
+
+    steps:
+      # Step 1: Check out the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Deploy to Heroku
+      # Uses third-party action to handle Heroku deployment
+      # Requires three secrets to be configured in GitHub repository settings
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.12.14
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}      # Heroku API key
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}    # Heroku app name
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}          # Heroku account email
