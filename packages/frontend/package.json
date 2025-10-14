@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "start": "serve -s dist -l $PORT",
     "preview": "vite preview",
     "test": "vitest",
     "test:e2e": "playwright test",
@@ -17,7 +18,8 @@
   "dependencies": {
     "@assetbridge/shared": "*",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "serve": "^14.2.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

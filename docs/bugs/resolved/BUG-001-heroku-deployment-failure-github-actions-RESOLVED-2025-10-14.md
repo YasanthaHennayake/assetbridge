@@ -1,9 +1,9 @@
 # BUG-001: Heroku Deployment Failure in GitHub Actions
 
-**Status:** Active
+**Status:** Resolved
 **Severity:** High
 **Created:** 2025-10-14
-**Resolved:** [Not yet resolved]
+**Resolved:** 2025-10-14
 **Component:** CI/CD
 
 ---
@@ -192,22 +192,31 @@ Need to ensure `@assetbridge/shared` is built BEFORE backend and frontend. This 
 
 ### What Caused the Bug?
 
-**Primary Issues:**
+**Root Cause:**
+Monorepo build order issue - the root `package.json` build script ran workspace builds in parallel using `npm run build --workspaces --if-present`, causing backend and frontend to compile before the shared package was built.
+
+**Secondary Issues:**
 1. Third-party GitHub Action (`akhileshns/heroku-deploy`) was unreliable for Heroku CLI installation
-2. Git HTTPS authentication to Heroku requires non-interactive credential configuration
+2. Git HTTPS authentication to Heroku requires non-interactive credential configuration via `.netrc`
 3. Missing or improperly configured authentication credentials for git operations
 
 ### Why Did It Happen?
 
-1. **Third-party dependency risk:** Relying on third-party actions without proper vetting
-2. **CI/CD environment constraints:** Non-interactive environment requires explicit credential configuration
-3. **Heroku authentication complexity:** Multiple authentication points (API, git) require proper setup
+1. **Parallel workspace builds:** NPM's `--workspaces` flag runs builds concurrently without respecting dependencies
+2. **Monorepo complexity:** Backend and frontend depend on shared package types at compile time
+3. **Third-party dependency risk:** Relying on third-party actions without proper vetting
+4. **CI/CD environment constraints:** Non-interactive environment requires explicit credential configuration
 
 ### Code Location
 
+**Primary Fix:**
+- **File:** `package.json` (root)
+- **Line:** 11
+- **Script:** `build`
+
+**Secondary Fixes:**
 - **File:** `.github/workflows/ci-cd.yml`
 - **Lines:** 97-134 (deploy job)
-- **Job:** `deploy`
 
 ---
 
@@ -216,18 +225,79 @@ Need to ensure `@assetbridge/shared` is built BEFORE backend and frontend. This 
 ### Fix Attempts
 
 **Attempt 1:** Replace third-party action with manual Heroku CLI installation
-- **Status:** Partial success - CLI installed but git auth failed
+- **Status:** ✅ Partial success - CLI installed but git auth failed
+- **Commit:** b8ab6ff
 
 **Attempt 2:** Add .netrc configuration for git authentication
-- **Status:** Still investigating - deployment still failing
+- **Status:** ✅ Partial success - Auth succeeded but build failed
+- **Commit:** db82868
 
-### Current Approach
+**Attempt 3 (FINAL):** Fix monorepo build order
+- **Status:** ✅ **SUCCESS** - Full deployment successful
+- **Commit:** 33e7bcc
 
-Working on refining the .netrc configuration and verifying all authentication requirements.
+### Final Solution
+
+Changed the root `package.json` build script to build packages **sequentially** in dependency order:
+
+**Before:**
+```json
+"build": "npm run build --workspaces --if-present"
+```
+
+**After:**
+```json
+"build": "npm run build -w @assetbridge/shared && npm run build -w @assetbridge/backend && npm run build -w @assetbridge/frontend"
+```
+
+This ensures:
+1. Shared package builds first
+2. Backend builds second (after shared types are available)
+3. Frontend builds third (after shared types are available)
 
 ### Files Modified
 
-- `.github/workflows/ci-cd.yml` - Modified deployment steps (lines 97-134)
+- `package.json` (root) - Fixed build order (line 11)
+- `.github/workflows/ci-cd.yml` - Replaced third-party action, added .netrc configuration
+- `docs/bugs/active/BUG-001-heroku-deployment-failure-github-actions.md` - This documentation
+
+### Code Changes
+
+```json
+// package.json
+{
+  "scripts": {
+    "build": "npm run build -w @assetbridge/shared && npm run build -w @assetbridge/backend && npm run build -w @assetbridge/frontend"
+  }
+}
+```
+
+```yaml
+# .github/workflows/ci-cd.yml
+- name: Install Heroku CLI
+  run: curl https://cli-assets.heroku.com/install.sh | sh
+
+- name: Configure Heroku credentials
+  env:
+    HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+  run: |
+    cat > ~/.netrc <<EOF
+    machine api.heroku.com
+      login ${{ secrets.HEROKU_EMAIL }}
+      password $HEROKU_API_KEY
+    machine git.heroku.com
+      login ${{ secrets.HEROKU_EMAIL }}
+      password $HEROKU_API_KEY
+    EOF
+    chmod 600 ~/.netrc
+
+- name: Deploy to Heroku
+  env:
+    HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+  run: |
+    heroku git:remote -a ${{ secrets.HEROKU_APP_NAME }}
+    git push heroku release:main
+```
 
 ---
 
@@ -239,20 +309,34 @@ Steps to confirm the bug is resolved:
 1. Push to `release` branch
 2. Monitor GitHub Actions workflow
 3. Verify all steps complete successfully:
-   - [ ] Heroku CLI installation
-   - [ ] Credential configuration
-   - [ ] Git remote setup
-   - [ ] Git push to Heroku
-   - [ ] Successful deployment
+   - [x] Heroku CLI installation
+   - [x] Credential configuration
+   - [x] Git remote setup
+   - [x] Git push to Heroku
+   - [x] Successful deployment
 4. Access deployed application on Heroku
 5. Verify application functionality
 
 ### Regression Testing
 
-- [ ] Test job passes (linting, unit tests, build)
-- [ ] Deploy job passes (CLI install, auth, push)
-- [ ] Application accessible on Heroku
-- [ ] No breaking changes to existing functionality
+- [x] Test job passes (linting, unit tests, build)
+- [x] Deploy job passes (CLI install, auth, push, Heroku build)
+- [x] Application accessible on Heroku
+- [x] No breaking changes to existing functionality
+
+### Verification Results
+
+**Date:** 2025-10-14
+
+✅ **All verification steps passed successfully**
+
+- GitHub Actions workflow completed without errors
+- Heroku CLI installed properly
+- Git authentication successful via .netrc
+- Code pushed to Heroku successfully
+- Heroku build completed (shared → backend → frontend)
+- Backend deployed and accessible at Heroku URL
+- Application running successfully
 
 ---
 
@@ -260,28 +344,44 @@ Steps to confirm the bug is resolved:
 
 ### How to Avoid This in the Future
 
-- [ ] Use official deployment methods (Heroku CLI or Heroku API)
-- [ ] Test CI/CD pipelines in isolated environments before production use
-- [ ] Document all required secrets and environment variables
-- [ ] Add verification steps to confirm successful deployment
+- [x] Use official deployment methods (Heroku CLI - now implemented)
+- [x] Test CI/CD pipelines in isolated environments before production use
+- [x] Document all required secrets and environment variables (documented in workflow)
+- [x] Ensure monorepo build scripts respect dependency order
+- [ ] Add verification steps to confirm successful deployment (future improvement)
 - [ ] Consider using Heroku's official GitHub integration as an alternative
 - [ ] Implement deployment health checks
+
+### Specific Preventive Measures Implemented
+
+1. **Sequential Build Order**: Always build shared packages before dependent packages
+2. **Manual Heroku CLI Installation**: Use official installation script instead of third-party actions
+3. **Explicit .netrc Configuration**: Configure git credentials for non-interactive environments
+4. **Comprehensive Documentation**: Document all deployment steps and requirements
 
 ### Related Issues
 
 - Branch: `bugfix/heroku-deploy-issue`
-- Related PRs: (To be added when created)
+- Commits: b8ab6ff, db82868, 33e7bcc
+- Merged to: `main` (2025-10-14), then `release` (2025-10-14)
 
 ---
 
 ## Lessons Learned
 
 Key takeaways from debugging this issue:
-- Third-party GitHub Actions should be carefully evaluated before use
-- CI/CD environments require explicit non-interactive authentication setup
-- Heroku has multiple authentication endpoints (API, git) that need proper configuration
-- Testing deployment pipelines requires iterative debugging
-- Documentation of secrets and environment variables is critical
+
+1. **Monorepo Build Dependencies**: NPM workspaces don't automatically respect build dependencies. Always explicitly order builds when packages depend on each other at compile time.
+
+2. **Third-Party Action Risks**: Third-party GitHub Actions should be carefully evaluated. Official tools and methods are often more reliable and maintainable.
+
+3. **CI/CD Authentication**: Non-interactive environments like GitHub Actions require explicit authentication configuration (e.g., .netrc files for git operations).
+
+4. **Iterative Debugging**: Complex deployment issues often have multiple layers. Each fix reveals the next issue - persistence and systematic documentation are key.
+
+5. **Error Message Analysis**: Read error messages carefully. The final error ("Cannot find module @assetbridge/shared") clearly indicated a build order issue once authentication was working.
+
+6. **Documentation Value**: Maintaining detailed bug reports during investigation helps track progress and serves as valuable reference for future similar issues.
 
 ## References
 
@@ -296,11 +396,13 @@ Key takeaways from debugging this issue:
 
 - **Discovered:** 2025-10-14 (initial push to release branch)
 - **Investigation Started:** 2025-10-14
-- **First Fix Attempt:** 2025-10-14 (Commit: b8ab6ff)
-- **Second Fix Attempt:** 2025-10-14 (Commit: db82868)
-- **Fix Committed:** [In progress]
-- **Verified:** [Pending]
-- **Moved to Resolved:** [Pending]
+- **First Fix Attempt:** 2025-10-14 (Commit: b8ab6ff) - Replace third-party action
+- **Second Fix Attempt:** 2025-10-14 (Commit: db82868) - Add .netrc authentication
+- **Third Fix Attempt (SUCCESS):** 2025-10-14 (Commit: 33e7bcc) - Fix build order
+- **Fix Merged to Main:** 2025-10-14
+- **Fix Deployed to Release:** 2025-10-14
+- **Verified:** 2025-10-14 ✅ Successful deployment
+- **Moved to Resolved:** 2025-10-14
 
 ---
 

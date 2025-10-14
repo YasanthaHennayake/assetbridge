@@ -82,9 +82,9 @@ jobs:
       - name: Build frontend
         run: npm run build:frontend
 
-  # Job 2: Deploy to Heroku
-  deploy:
-    name: Deploy to Heroku
+  # Job 2: Deploy Backend to Heroku
+  deploy-backend:
+    name: Deploy Backend to Heroku
     needs: test                    # Only run if 'test' job succeeds
     runs-on: ubuntu-latest
 
@@ -122,12 +122,77 @@ jobs:
           EOF
           chmod 600 ~/.netrc
 
-      # Step 4: Deploy to Heroku
-      # Uses Heroku CLI to deploy the application
-      # Requires HEROKU_API_KEY, HEROKU_APP_NAME, and HEROKU_EMAIL secrets
-      - name: Deploy to Heroku
+      # Step 4: Deploy Backend to Heroku
+      # Uses Heroku CLI to deploy the backend application
+      # Uses default Procfile which runs the backend
+      - name: Deploy Backend to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
           heroku git:remote -a ${{ secrets.HEROKU_APP_NAME }}
           git push heroku release:main
+
+  # Job 3: Deploy Frontend to Heroku
+  deploy-frontend:
+    name: Deploy Frontend to Heroku
+    needs: test                    # Only run if 'test' job succeeds
+    runs-on: ubuntu-latest
+
+    # Conditional execution:
+    # - Only run on 'release' branch
+    # - Only run on push events (not pull requests)
+    # This ensures deployment only happens when code is merged to release
+    if: github.ref == 'refs/heads/release' && github.event_name == 'push'
+
+    steps:
+      # Step 1: Check out the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for proper Heroku deployment
+
+      # Step 2: Install Heroku CLI
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      # Step 3: Configure git credentials for Heroku
+      - name: Configure Heroku credentials
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          cat > ~/.netrc <<EOF
+          machine api.heroku.com
+            login ${{ secrets.HEROKU_EMAIL }}
+            password $HEROKU_API_KEY
+          machine git.heroku.com
+            login ${{ secrets.HEROKU_EMAIL }}
+            password $HEROKU_API_KEY
+          EOF
+          chmod 600 ~/.netrc
+
+      # Step 4: Set Frontend Environment Variables
+      # Configure frontend with backend API URL
+      - name: Set Frontend Environment Variables
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          heroku config:set VITE_API_URL=${{ secrets.BACKEND_API_URL }} -a ${{ secrets.HEROKU_FRONTEND_APP_NAME }}
+
+      # Step 5: Prepare Frontend Procfile
+      # Replace Procfile with Procfile.frontend for frontend deployment
+      - name: Prepare Frontend Procfile
+        run: |
+          cp Procfile.frontend Procfile
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Procfile
+          git commit -m "Use frontend Procfile for deployment [skip ci]" || echo "No changes to commit"
+
+      # Step 6: Deploy Frontend to Heroku
+      # Uses Heroku CLI to deploy the frontend application
+      - name: Deploy Frontend to Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          heroku git:remote -a ${{ secrets.HEROKU_FRONTEND_APP_NAME }}
+          git push heroku release:main --force
