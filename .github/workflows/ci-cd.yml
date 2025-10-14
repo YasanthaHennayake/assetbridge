@@ -106,9 +106,25 @@ jobs:
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
 
-      # Step 3: Deploy to Heroku
+      # Step 3: Configure git credentials for Heroku
+      # Sets up authentication using Heroku API key
+      - name: Configure Heroku credentials
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          cat > ~/.netrc <<EOF
+          machine api.heroku.com
+            login ${{ secrets.HEROKU_EMAIL }}
+            password $HEROKU_API_KEY
+          machine git.heroku.com
+            login ${{ secrets.HEROKU_EMAIL }}
+            password $HEROKU_API_KEY
+          EOF
+          chmod 600 ~/.netrc
+
+      # Step 4: Deploy to Heroku
       # Uses Heroku CLI to deploy the application
-      # Requires HEROKU_API_KEY and HEROKU_APP_NAME secrets configured in GitHub
+      # Requires HEROKU_API_KEY, HEROKU_APP_NAME, and HEROKU_EMAIL secrets
       - name: Deploy to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
