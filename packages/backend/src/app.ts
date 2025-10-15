@@ -27,8 +27,15 @@ const app: Application = express();
 
 // Enable Cross-Origin Resource Sharing (CORS)
 // This allows the frontend (running on different port/domain) to make requests to this API
-// In production, you may want to configure allowed origins specifically
-app.use(cors());
+// Configure allowed origins for development and production
+const corsOptions = {
+  origin: [
+    'http://localhost:3000', // Local development frontend
+    'https://assetbridge.hikvision.lk' // Production frontend custom domain
+  ],
+  credentials: true
+};
+app.use(cors(corsOptions));
 
 // Parse incoming JSON request bodies
 // Makes JSON data available in req.body for POST/PUT requests

@@ -129,6 +129,37 @@ heroku git:remote -a assetbridge-frontend -r heroku-frontend
 git remote -v
 ```
 
+### Step 1b: Configure Custom Domains (Recommended)
+
+Heroku assigns random domain names (`*.herokuapp.com`), which are difficult to predict. It's recommended to configure custom domains for production.
+
+**AssetBridge Production Domains:**
+- Frontend: `assetbridge.hikvision.lk`
+- Backend API: `api.assetbridge.hikvision.lk`
+
+```bash
+# Add custom domain to frontend app
+heroku domains:add assetbridge.hikvision.lk -a assetbridge-frontend
+
+# Add custom domain to backend app
+heroku domains:add api.assetbridge.hikvision.lk -a assetbridge-backend
+
+# View DNS targets
+heroku domains -a assetbridge-frontend
+heroku domains -a assetbridge-backend
+```
+
+**DNS Configuration:**
+After adding domains in Heroku, update your DNS records:
+
+| Type | Name | Value | App |
+|------|------|-------|-----|
+| CNAME | `assetbridge` | DNS target from Heroku | Frontend |
+| CNAME | `api.assetbridge` | DNS target from Heroku | Backend |
+
+**SSL/TLS:**
+Heroku automatically provides free SSL certificates for custom domains via Automated Certificate Management (ACM).
+
 ### Step 2: Configure MongoDB Atlas
 
 1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
@@ -155,14 +186,16 @@ heroku config -a assetbridge-backend
 #### Frontend Environment Variables
 
 ```bash
-# Set backend API URL for frontend
-heroku config:set VITE_API_URL=https://assetbridge-backend.herokuapp.com -a assetbridge-frontend
+# Set backend API URL for frontend (using custom domain)
+heroku config:set VITE_API_URL=https://api.assetbridge.hikvision.lk -a assetbridge-frontend
 
 # Verify frontend configuration
 heroku config -a assetbridge-frontend
 ```
 
-**Important**: Vite requires environment variables to be prefixed with `VITE_` to be included in the build.
+**Important**:
+- Vite requires environment variables to be prefixed with `VITE_` to be included in the build.
+- Use your custom domain URLs instead of default Heroku URLs for production.
 
 ### Step 4: Configure GitHub Secrets
 
@@ -177,7 +210,7 @@ heroku config -a assetbridge-frontend
 | `HEROKU_BACKEND_APP_NAME` | Backend Heroku app name | The name you used (e.g., `assetbridge-backend`) |
 | `HEROKU_FRONTEND_APP_NAME` | Frontend Heroku app name | The name you used (e.g., `assetbridge-frontend`) |
 | `HEROKU_EMAIL` | Your Heroku email | Email address of your Heroku account |
-| `BACKEND_API_URL` | Backend API URL | Full URL (e.g., `https://assetbridge-backend.herokuapp.com`) |
+| `BACKEND_API_URL` | Backend API URL | Custom domain URL (e.g., `https://api.assetbridge.hikvision.lk`) |
 
 #### Getting Heroku API Key
 
@@ -288,18 +321,19 @@ heroku releases
 ```javascript
 // packages/backend/src/app.ts
 app.use(cors({
-  origin: ['https://assetbridge-frontend.herokuapp.com']
+  origin: ['https://assetbridge.hikvision.lk']
 }));
 ```
 
 2. Check `VITE_API_URL` is set correctly:
 ```bash
 heroku config:get VITE_API_URL -a assetbridge-frontend
+# Should return: https://api.assetbridge.hikvision.lk
 ```
 
 3. Ensure backend API is accessible:
 ```bash
-curl https://assetbridge-backend.herokuapp.com/api/hello
+curl https://api.assetbridge.hikvision.lk/api/hello
 ```
 
 #### Issue: Frontend shows blank page or 404 errors
@@ -443,11 +477,13 @@ Both deployments happen **simultaneously** for faster deployment.
 
 ### Production (Heroku)
 
-- **Backend API**: `https://assetbridge-backend.herokuapp.com`
-- **Frontend**: `https://assetbridge-frontend.herokuapp.com`
+- **Frontend**: `https://assetbridge.hikvision.lk` (custom domain)
+- **Backend API**: `https://api.assetbridge.hikvision.lk` (custom domain)
 - **Database**: MongoDB Atlas (production cluster recommended)
 - **Backend Logs**: `heroku logs --tail -a assetbridge-backend`
 - **Frontend Logs**: `heroku logs --tail -a assetbridge-frontend`
+
+**Note**: Custom domains are configured in Heroku. Default Heroku URLs (`*.herokuapp.com`) redirect to custom domains.
 
 ## Additional Resources
 
