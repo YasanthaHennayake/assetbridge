@@ -175,8 +175,10 @@ jobs:
       - name: Set Frontend Environment Variables
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}
+          HEROKU_FRONTEND_APP_NAME: ${{ secrets.HEROKU_FRONTEND_APP_NAME }}
         run: |
-          heroku config:set VITE_API_URL=${{ secrets.BACKEND_API_URL }} -a ${{ secrets.HEROKU_FRONTEND_APP_NAME }}
+          heroku config:set VITE_API_URL="$BACKEND_API_URL" -a "$HEROKU_FRONTEND_APP_NAME"
 
       # Step 5: Prepare Frontend Procfile
       # Replace Procfile with Procfile.frontend for frontend deployment
