@@ -47,7 +47,10 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
   const skip = (page - 1) * limit;
 
   // Build search query
-  const searchQuery: any = {};
+  interface SearchQuery {
+    $or?: Array<{ name: { $regex: string; $options: string } } | { email: { $regex: string; $options: string } }>;
+  }
+  const searchQuery: SearchQuery = {};
   if (search) {
     searchQuery.$or = [
       { name: { $regex: search, $options: 'i' } },

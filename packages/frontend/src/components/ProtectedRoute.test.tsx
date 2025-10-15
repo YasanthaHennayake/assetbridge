@@ -18,7 +18,7 @@ vi.mock('../services/api', () => ({
     setToken: vi.fn(),
     getCurrentUser: vi.fn(),
     clearToken: vi.fn(),
-    getErrorMessage: vi.fn((error: any) => error.message || 'An error occurred'),
+    getErrorMessage: vi.fn((error: unknown) => (error as Error).message || 'An error occurred'),
   },
 }));
 

@@ -79,6 +79,7 @@ const handleValidationError = (
  * @param {any} err - MongoDB error object
  * @returns {string} User-friendly error message
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const handleDuplicateKeyError = (err: any): string => {
   // Extract field name from error
   const field = Object.keys(err.keyValue)[0];
@@ -96,17 +97,18 @@ const handleDuplicateKeyError = (err: any): string => {
  * @param {any} err - Error object
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object
- * @param {NextFunction} next - Express next function
+ * @param {NextFunction} _next - Express next function (unused in error handler)
  *
  * @example
  * // In app.ts, register after all routes:
  * app.use(errorHandler);
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const errorHandler = (
   err: any,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal server error';
@@ -141,6 +143,7 @@ export const errorHandler = (
   }
 
   // Prepare error response
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const errorResponse: any = {
     success: false,
     error: message,
@@ -215,7 +218,9 @@ export const notFoundHandler = (
  *   res.json(users);
  * }));
  */
-export const asyncHandler = (fn: Function) => {
+export const asyncHandler = (
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
+) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };

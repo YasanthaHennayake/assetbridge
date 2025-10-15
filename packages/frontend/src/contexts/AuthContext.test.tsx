@@ -20,7 +20,7 @@ vi.mock('../services/api', () => ({
     getToken: vi.fn(),
     setToken: vi.fn(),
     clearToken: vi.fn(),
-    getErrorMessage: vi.fn((error: any) => error.message || 'An error occurred'),
+    getErrorMessage: vi.fn((error: unknown) => (error as Error).message || 'An error occurred'),
   },
 }));
 

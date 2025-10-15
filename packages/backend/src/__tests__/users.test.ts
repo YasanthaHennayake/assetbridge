@@ -59,7 +59,7 @@ describe('GET /api/users', () => {
       .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
-    response.body.data.users.forEach((user: any) => {
+    response.body.data.users.forEach((user: Record<string, unknown>) => {
       expect(user).not.toHaveProperty('password');
     });
   });

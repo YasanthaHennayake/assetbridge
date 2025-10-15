@@ -24,14 +24,14 @@ vi.mock('../services/api', () => ({
     setToken: vi.fn(),
     clearToken: vi.fn(),
     getCurrentUser: vi.fn(),
-    getErrorMessage: vi.fn((error: any) => error.message || 'An error occurred'),
+    getErrorMessage: vi.fn((error: unknown) => (error as Error).message || 'An error occurred'),
   },
 }));
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
-  const actual = (await vi.importActual('react-router-dom')) as any;
+  const actual = (await vi.importActual('react-router-dom')) as Record<string, unknown>;
   return {
     ...actual,
     useNavigate: () => mockNavigate,

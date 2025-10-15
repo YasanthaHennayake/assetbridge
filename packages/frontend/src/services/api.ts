@@ -93,7 +93,7 @@ class ApiClient {
    */
 
   async login(email: string, password: string) {
-    const response = await this.client.post<ApiResponse<{ token: string; user: any }>>('/api/auth/login', {
+    const response = await this.client.post<ApiResponse<{ token: string; user: Record<string, unknown> }>>('/api/auth/login', {
       email,
       password,
     });
@@ -107,7 +107,7 @@ class ApiClient {
   }
 
   async getCurrentUser() {
-    const response = await this.client.get<ApiResponse<any>>('/api/auth/me');
+    const response = await this.client.get<ApiResponse<Record<string, unknown>>>('/api/auth/me');
     return response.data;
   }
 
@@ -125,7 +125,7 @@ class ApiClient {
 
   async getUsers(params?: { page?: number; limit?: number; search?: string }) {
     const response = await this.client.get<ApiResponse<{
-      users: any[];
+      users: Array<Record<string, unknown>>;
       total: number;
       page: number;
       limit: number;
@@ -135,7 +135,7 @@ class ApiClient {
 
   async createUser(name: string, email: string) {
     const response = await this.client.post<ApiResponse<{
-      user: any;
+      user: Record<string, unknown>;
       generatedPassword: string;
     }>>('/api/users', {
       name,
@@ -145,12 +145,12 @@ class ApiClient {
   }
 
   async getUserById(id: string) {
-    const response = await this.client.get<ApiResponse<any>>(`/api/users/${id}`);
+    const response = await this.client.get<ApiResponse<Record<string, unknown>>>(`/api/users/${id}`);
     return response.data;
   }
 
   async updateUser(id: string, data: { name?: string; email?: string }) {
-    const response = await this.client.put<ApiResponse<any>>(`/api/users/${id}`, data);
+    const response = await this.client.put<ApiResponse<Record<string, unknown>>>(`/api/users/${id}`, data);
     return response.data;
   }
 

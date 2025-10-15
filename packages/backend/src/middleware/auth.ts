@@ -23,11 +23,9 @@ import type { JwtPayload } from '@assetbridge/shared';
  *
  * This allows TypeScript to recognize req.user in route handlers
  */
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: JwtPayload;
   }
 }
 

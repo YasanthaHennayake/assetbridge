@@ -156,7 +156,7 @@ export function ChangePassword() {
       } else {
         setError(response.error || 'Failed to change password');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(api.getErrorMessage(err));
     } finally {
       setLoading(false);
