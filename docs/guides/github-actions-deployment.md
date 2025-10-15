@@ -105,20 +105,28 @@ When you merge or push directly to `release` branch:
 2. Heroku account
 3. Heroku CLI installed ([installation guide](https://devcenter.heroku.com/articles/heroku-cli))
 
-### Step 1: Create Heroku App
+### Step 1: Create Heroku Apps
+
+AssetBridge uses **two separate Heroku apps**:
+1. **Backend App**: Serves the Express API
+2. **Frontend App**: Serves the React application as static files
 
 ```bash
 # Login to Heroku
 heroku login
 
-# Create new app (choose a unique name)
-heroku create your-app-name
+# Create backend app
+heroku create assetbridge-backend
 
-# Or connect to existing app
-heroku git:remote -a your-app-name
+# Create frontend app
+heroku create assetbridge-frontend
 
-# Add Node.js buildpack
-heroku buildpacks:set heroku/nodejs
+# Or connect to existing apps
+heroku git:remote -a assetbridge-backend
+heroku git:remote -a assetbridge-frontend -r heroku-frontend
+
+# Verify remotes
+git remote -v
 ```
 
 ### Step 2: Configure MongoDB Atlas
@@ -131,16 +139,30 @@ heroku buildpacks:set heroku/nodejs
 
 ### Step 3: Set Heroku Environment Variables
 
+#### Backend Environment Variables
+
 ```bash
-# Set MongoDB connection string
-heroku config:set MONGODB_URI="mongodb+srv://username:password@cluster.mongodb.net/assetbridge?retryWrites=true&w=majority"
+# Set MongoDB connection string for backend
+heroku config:set MONGODB_URI="mongodb+srv://username:password@cluster.mongodb.net/assetbridge?retryWrites=true&w=majority" -a assetbridge-backend
 
 # Set Node environment
-heroku config:set NODE_ENV=production
+heroku config:set NODE_ENV=production -a assetbridge-backend
 
-# Verify configuration
-heroku config
+# Verify backend configuration
+heroku config -a assetbridge-backend
 ```
+
+#### Frontend Environment Variables
+
+```bash
+# Set backend API URL for frontend
+heroku config:set VITE_API_URL=https://assetbridge-backend.herokuapp.com -a assetbridge-frontend
+
+# Verify frontend configuration
+heroku config -a assetbridge-frontend
+```
+
+**Important**: Vite requires environment variables to be prefixed with `VITE_` to be included in the build.
 
 ### Step 4: Configure GitHub Secrets
 
@@ -152,8 +174,10 @@ heroku config
 | Secret Name | Value | How to Get |
 |------------|-------|------------|
 | `HEROKU_API_KEY` | Your Heroku API key | Run `heroku auth:token` |
-| `HEROKU_APP_NAME` | Your Heroku app name | The name you used in `heroku create` |
+| `HEROKU_BACKEND_APP_NAME` | Backend Heroku app name | The name you used (e.g., `assetbridge-backend`) |
+| `HEROKU_FRONTEND_APP_NAME` | Frontend Heroku app name | The name you used (e.g., `assetbridge-frontend`) |
 | `HEROKU_EMAIL` | Your Heroku email | Email address of your Heroku account |
+| `BACKEND_API_URL` | Backend API URL | Full URL (e.g., `https://assetbridge-backend.herokuapp.com`) |
 
 #### Getting Heroku API Key
 
@@ -162,6 +186,8 @@ heroku auth:token
 ```
 
 Copy the output and paste it as the `HEROKU_API_KEY` secret.
+
+**Note**: The GitHub Actions workflow will automatically deploy both backend and frontend when you push to the `release` branch.
 
 ## Testing the Workflow
 
@@ -251,9 +277,61 @@ heroku releases
 #### Issue: MongoDB connection fails in production
 
 **Solution**:
-1. Verify `MONGODB_URI` is set: `heroku config:get MONGODB_URI`
+1. Verify `MONGODB_URI` is set: `heroku config:get MONGODB_URI -a assetbridge-backend`
 2. Check MongoDB Atlas IP whitelist includes Heroku or 0.0.0.0/0
 3. Verify database user has correct permissions
+
+#### Issue: Frontend can't connect to backend (CORS errors)
+
+**Solution**:
+1. Verify backend CORS is configured to allow frontend domain:
+```javascript
+// packages/backend/src/app.ts
+app.use(cors({
+  origin: ['https://assetbridge-frontend.herokuapp.com']
+}));
+```
+
+2. Check `VITE_API_URL` is set correctly:
+```bash
+heroku config:get VITE_API_URL -a assetbridge-frontend
+```
+
+3. Ensure backend API is accessible:
+```bash
+curl https://assetbridge-backend.herokuapp.com/api/hello
+```
+
+#### Issue: Frontend shows blank page or 404 errors
+
+**Solution**:
+1. Check frontend build output exists:
+```bash
+# Locally
+cd packages/frontend && npm run build
+ls dist/  # Should show index.html and assets
+```
+
+2. Verify frontend Procfile is correct:
+```bash
+# Should be: cd packages/frontend && npm start
+cat Procfile.frontend
+```
+
+3. Check frontend logs:
+```bash
+heroku logs --tail -a assetbridge-frontend
+```
+
+#### Issue: Build fails with "Cannot find module @assetbridge/shared"
+
+**Solution**:
+This was fixed in BUG-001. Ensure `package.json` has sequential build order:
+```json
+"build": "npm run build -w @assetbridge/shared && npm run build -w @assetbridge/backend && npm run build -w @assetbridge/frontend"
+```
+
+See `docs/bugs/resolved/BUG-001-heroku-deployment-failure-github-actions-RESOLVED-2025-10-14.md` for full details.
 
 ## Rollback Strategies
 
@@ -310,6 +388,51 @@ Configure these in GitHub Settings → Branches:
 - Require branches to be up to date
 - Include administrators
 
+## Deployment Architecture
+
+AssetBridge uses a **dual-dyno deployment** strategy:
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│  Frontend Heroku    │────────>│  Backend Heroku     │
+│  (React + serve)    │  HTTPS  │  (Express API)      │
+│  Port: $PORT        │         │  Port: $PORT        │
+└─────────────────────┘         └─────────────────────┘
+                                          │
+                                          │
+                                          v
+                                ┌─────────────────────┐
+                                │   MongoDB Atlas     │
+                                │   (Database)        │
+                                └─────────────────────┘
+```
+
+### How It Works
+
+1. **Frontend App**: Serves the built React application as static files using the `serve` package
+2. **Backend App**: Runs the Express API server
+3. **Communication**: Frontend makes API calls to backend via `VITE_API_URL` environment variable
+4. **Database**: Both apps can connect to the same MongoDB Atlas cluster (backend only needs connection)
+
+### GitHub Actions Workflow
+
+When you push to `release` branch:
+
+1. **Test Job** runs first (linting, unit tests, builds)
+2. **Deploy Backend Job** runs in parallel after tests pass:
+   - Installs Heroku CLI
+   - Configures authentication
+   - Uses `Procfile` (backend configuration)
+   - Pushes to backend Heroku app
+3. **Deploy Frontend Job** runs in parallel after tests pass:
+   - Installs Heroku CLI
+   - Configures authentication
+   - Sets frontend environment variables
+   - Uses `Procfile.frontend` (frontend configuration)
+   - Pushes to frontend Heroku app
+
+Both deployments happen **simultaneously** for faster deployment.
+
 ## Environment Summary
 
 ### Local Development
@@ -320,9 +443,11 @@ Configure these in GitHub Settings → Branches:
 
 ### Production (Heroku)
 
-- Application: `https://your-app-name.herokuapp.com`
-- Database: MongoDB Atlas (production cluster recommended)
-- Logs: `heroku logs --tail`
+- **Backend API**: `https://assetbridge-backend.herokuapp.com`
+- **Frontend**: `https://assetbridge-frontend.herokuapp.com`
+- **Database**: MongoDB Atlas (production cluster recommended)
+- **Backend Logs**: `heroku logs --tail -a assetbridge-backend`
+- **Frontend Logs**: `heroku logs --tail -a assetbridge-frontend`
 
 ## Additional Resources
 

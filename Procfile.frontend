@@ -1,0 +1,17 @@
+# Heroku Procfile for Frontend
+#
+# This file tells Heroku how to run the frontend React application.
+# This is used for a SEPARATE Heroku app dedicated to the frontend.
+#
+# Process type 'web' is special:
+# - Receives HTTP traffic
+# - Heroku assigns a PORT environment variable
+# - Must bind to the PORT within 60 seconds or Heroku will restart it
+#
+# This command:
+# 1. Changes directory to the frontend package
+# 2. Runs 'npm start' which serves the built static files using 'serve'
+#
+# Note: The build step happens automatically before this via Heroku's Node.js buildpack
+
+web: cd packages/frontend && npm start
