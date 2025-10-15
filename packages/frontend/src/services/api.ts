@@ -9,6 +9,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import type { UserSafe, PaginatedUsersResponse, CreateUserResponse } from '@assetbridge/shared';
 
 /**
  * API Response Types
@@ -93,7 +94,7 @@ class ApiClient {
    */
 
   async login(email: string, password: string) {
-    const response = await this.client.post<ApiResponse<{ token: string; user: Record<string, unknown> }>>('/api/auth/login', {
+    const response = await this.client.post<ApiResponse<{ token: string; user: UserSafe }>>('/api/auth/login', {
       email,
       password,
     });
@@ -107,7 +108,7 @@ class ApiClient {
   }
 
   async getCurrentUser() {
-    const response = await this.client.get<ApiResponse<Record<string, unknown>>>('/api/auth/me');
+    const response = await this.client.get<ApiResponse<UserSafe>>('/api/auth/me');
     return response.data;
   }
 
@@ -124,20 +125,12 @@ class ApiClient {
    */
 
   async getUsers(params?: { page?: number; limit?: number; search?: string }) {
-    const response = await this.client.get<ApiResponse<{
-      users: Array<Record<string, unknown>>;
-      total: number;
-      page: number;
-      limit: number;
-    }>>('/api/users', { params });
+    const response = await this.client.get<ApiResponse<PaginatedUsersResponse>>('/api/users', { params });
     return response.data;
   }
 
   async createUser(name: string, email: string) {
-    const response = await this.client.post<ApiResponse<{
-      user: Record<string, unknown>;
-      generatedPassword: string;
-    }>>('/api/users', {
+    const response = await this.client.post<ApiResponse<CreateUserResponse>>('/api/users', {
       name,
       email,
     });
@@ -145,12 +138,12 @@ class ApiClient {
   }
 
   async getUserById(id: string) {
-    const response = await this.client.get<ApiResponse<Record<string, unknown>>>(`/api/users/${id}`);
+    const response = await this.client.get<ApiResponse<UserSafe>>(`/api/users/${id}`);
     return response.data;
   }
 
   async updateUser(id: string, data: { name?: string; email?: string }) {
-    const response = await this.client.put<ApiResponse<Record<string, unknown>>>(`/api/users/${id}`, data);
+    const response = await this.client.put<ApiResponse<UserSafe>>(`/api/users/${id}`, data);
     return response.data;
   }
 

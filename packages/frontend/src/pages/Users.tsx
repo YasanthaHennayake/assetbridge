@@ -12,22 +12,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
+import type { UserSafe } from '@assetbridge/shared';
 import '../styles/Users.css';
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  mustChangePassword: boolean;
-  createdAt: string;
-  lastLogin?: string;
-}
 
 export function Users() {
   const navigate = useNavigate();
   const { user: currentUser, logout } = useAuth();
 
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserSafe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');

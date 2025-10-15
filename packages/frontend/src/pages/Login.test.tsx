@@ -132,7 +132,14 @@ describe('Login Component', () => {
       success: true,
       data: {
         token: 'fake-token',
-        user: { _id: '1', name: 'Test User', email: 'test@example.com', mustChangePassword: false },
+        user: {
+          _id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          mustChangePassword: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
       },
     });
 
@@ -156,7 +163,14 @@ describe('Login Component', () => {
       success: true,
       data: {
         token: 'fake-token',
-        user: { _id: '1', name: 'Test User', email: 'test@example.com', mustChangePassword: false },
+        user: {
+          _id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          mustChangePassword: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
       },
     });
 
@@ -199,7 +213,14 @@ describe('Login Component', () => {
       success: true,
       data: {
         token: 'fake-token',
-        user: { _id: '1', name: 'Test User', email: 'test@example.com', mustChangePassword: false },
+        user: {
+          _id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          mustChangePassword: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
       },
     });
 

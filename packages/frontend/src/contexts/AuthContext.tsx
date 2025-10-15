@@ -11,25 +11,13 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '../services/api';
-
-/**
- * User Type
- */
-export interface User {
-  _id: string;
-  name: string;
-  email: string;
-  mustChangePassword: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lastLogin?: string;
-}
+import type { UserSafe } from '@assetbridge/shared';
 
 /**
  * Auth Context Type
  */
 interface AuthContextType {
-  user: User | null;
+  user: UserSafe | null;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
@@ -56,7 +44,7 @@ interface AuthProviderProps {
  * Wraps the application to provide authentication state and methods
  */
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserSafe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

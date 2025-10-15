@@ -398,7 +398,7 @@ describe('ChangePassword Component', () => {
   it('should disable form during password change', async () => {
     // Make the API call take longer so we can test loading state
     vi.mocked(api.changePassword).mockImplementation(() =>
-      new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))
+      new Promise<{ success: boolean }>((resolve) => setTimeout(() => resolve({ success: true }), 100))
     );
 
     renderChangePassword();
