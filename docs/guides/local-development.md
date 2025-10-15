@@ -171,6 +171,55 @@ npx playwright install chromium
 cd ../..
 ```
 
+### Step 8: Seed the Database (Create Admin User)
+
+Before you can log in, you need to create an admin user:
+
+```bash
+npm run seed
+```
+
+**Expected output:**
+```
+🌱 AssetBridge Database Seeder
+
+==================================================
+
+✅ Connected to MongoDB
+   Database: assetbridge
+   Host: cluster0.mongodb.net
+
+👤 Seeding Admin User...
+   ✅ Admin user created successfully
+   Email: admin@assetbridge.com
+   Password: Admin123!
+   Name: Admin User
+
+👥 Seeding Test Users...
+   ✅ Created: john.doe@assetbridge.com
+   ✅ Created: jane.smith@assetbridge.com
+
+   Summary: 2 created, 0 skipped
+
+==================================================
+
+✅ Seeding completed successfully!
+
+You can now log in with:
+   Email: admin@assetbridge.com
+   Password: Admin123!
+```
+
+**Default Users Created:**
+- **Admin:** admin@assetbridge.com / Admin123!
+- **Test User 1:** john.doe@assetbridge.com / Test123!
+- **Test User 2 (First-time login):** jane.smith@assetbridge.com / Generated123! (must change password)
+
+**Note:** If users already exist, the seed script will skip them. To reset all data:
+```bash
+npm run seed:reset  # ⚠️ Deletes ALL database data!
+```
+
 ## Running the Application
 
 ### Option 1: Run Backend and Frontend Separately (Recommended for Development)

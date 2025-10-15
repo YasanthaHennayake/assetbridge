@@ -16,7 +16,9 @@
     "build:backend": "npm run build -w @assetbridge/backend",
     "build:frontend": "npm run build -w @assetbridge/frontend",
     "test:backend": "npm run test -w @assetbridge/backend",
-    "test:frontend": "npm run test -w @assetbridge/frontend"
+    "test:frontend": "npm run test -w @assetbridge/frontend",
+    "seed": "npm run seed -w @assetbridge/backend",
+    "seed:reset": "npm run seed:reset -w @assetbridge/backend"
   },
   "keywords": [
     "procurement",
