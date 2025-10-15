@@ -17,8 +17,10 @@
   },
   "dependencies": {
     "@assetbridge/shared": "*",
+    "axios": "^1.12.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.9.4",
     "serve": "^14.2.1"
   },
   "devDependencies": {

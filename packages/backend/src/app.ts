@@ -13,7 +13,9 @@
 
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
-import helloRoutes from './routes/hello.routes';
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 // Create Express application instance
 const app: Application = express();
@@ -51,7 +53,8 @@ app.use(express.urlencoded({ extended: true }));
  * All routes are prefixed with /api to distinguish them from static files
  * or other endpoints. This is a common REST API convention.
  */
-app.use('/api', helloRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 /**
  * Health Check Endpoint
@@ -72,21 +75,17 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 /**
- * 404 Not Found Handler
+ * Error Handling Middleware
  *
- * This middleware catches all requests that don't match any defined routes.
- * It must be defined AFTER all other routes to act as a catch-all.
+ * These middleware handle errors and undefined routes.
+ * They must be defined AFTER all routes.
  *
- * Returns a standardized error response for unknown endpoints.
- *
- * @middleware
+ * Order matters:
+ * 1. notFoundHandler - catches undefined routes (404)
+ * 2. errorHandler - catches all errors from route handlers
  */
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-  });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // Export the configured Express application
 // This will be imported and used in index.ts to start the server

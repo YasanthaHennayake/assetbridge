@@ -1,84 +1,169 @@
 /**
- * API Service Layer
+ * API Client Service
  *
- * This module provides a centralized API client for making HTTP requests to the backend.
- * It handles:
- * - Request construction with proper URLs
- * - Response parsing and validation
- * - Error handling
- * - Type safety using shared types
- *
- * Benefits of this approach:
- * - Single source of truth for API calls
- * - Consistent error handling across the application
- * - Easy to add authentication headers later
- * - Easy to mock for testing
- * - Type-safe API responses
- *
- * Environment Variables:
- * - VITE_API_URL: Base URL for the backend API (e.g., http://localhost:5001)
+ * Centralized API client for making HTTP requests to the backend.
+ * Uses axios with interceptors for:
+ * - Automatic JWT token attachment
+ * - Response error handling
+ * - Request/response transformations
  */
 
-import type { ApiResponse, HelloWorldResponse } from '@assetbridge/shared';
-
-// Get the API base URL from environment variables
-// In development: Use proxy configured in vite.config.ts (empty string uses relative URLs)
-// In production: Use the full backend URL from environment variable
-const API_URL = import.meta.env.VITE_API_URL || '';
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import type { UserSafe, PaginatedUsersResponse, CreateUserResponse } from '@assetbridge/shared';
 
 /**
- * API Client Object
- *
- * Contains all API methods organized by functionality.
- * Each method returns the actual data (not the wrapper) and throws errors on failure.
+ * API Response Types
  */
-export const api = {
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+  errors?: Array<{ field: string; message: string }>;
+}
+
+/**
+ * API Client Class
+ *
+ * Provides methods for all backend API endpoints with automatic
+ * authentication token handling.
+ */
+class ApiClient {
+  private client: AxiosInstance;
+  private tokenKey = 'assetbridge_token';
+
+  constructor() {
+    // Create axios instance with base configuration
+    this.client = axios.create({
+      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000, // 10 second timeout
+    });
+
+    // Add request interceptor to attach JWT token
+    this.client.interceptors.request.use(
+      (config: InternalAxiosRequestConfig) => {
+        const token = this.getToken();
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    // Add response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error: AxiosError) => {
+        // Handle 401 Unauthorized - clear token and redirect to login
+        if (error.response?.status === 401) {
+          this.clearToken();
+          // Only redirect if not already on login page
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
   /**
-   * Get Hello World Message
-   *
-   * Fetches the hello world message from the backend API.
-   * This method demonstrates:
-   * - Making GET requests with fetch API
-   * - Handling HTTP errors
-   * - Parsing and validating JSON responses
-   * - Type-safe return values
-   *
-   * @returns {Promise<HelloWorldResponse>} The hello world data
-   * @throws {Error} If the request fails or returns an error response
-   *
-   * Usage example:
-   * ```typescript
-   * try {
-   *   const data = await api.getHelloWorld();
-   *   console.log(data.message); // "Hello World from AssetBridge!"
-   * } catch (error) {
-   *   console.error('Failed to fetch:', error.message);
-   * }
-   * ```
+   * Token Management
    */
-  async getHelloWorld(): Promise<HelloWorldResponse> {
-    // Make HTTP GET request to the hello endpoint
-    // fetch() returns a Promise that resolves to the Response object
-    const response = await fetch(`${API_URL}/api/hello`);
 
-    // Check if the HTTP response indicates success (status 200-299)
-    // If not, throw an error before trying to parse JSON
-    if (!response.ok) {
-      throw new Error('Failed to fetch hello world message');
+  setToken(token: string): void {
+    localStorage.setItem(this.tokenKey, token);
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
+
+  clearToken(): void {
+    localStorage.removeItem(this.tokenKey);
+  }
+
+  /**
+   * Authentication Endpoints
+   */
+
+  async login(email: string, password: string) {
+    const response = await this.client.post<ApiResponse<{ token: string; user: UserSafe }>>('/api/auth/login', {
+      email,
+      password,
+    });
+    return response.data;
+  }
+
+  async logout() {
+    const response = await this.client.post<ApiResponse<void>>('/api/auth/logout');
+    this.clearToken();
+    return response.data;
+  }
+
+  async getCurrentUser() {
+    const response = await this.client.get<ApiResponse<UserSafe>>('/api/auth/me');
+    return response.data;
+  }
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    const response = await this.client.post<ApiResponse<void>>('/api/auth/change-password', {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  }
+
+  /**
+   * User Management Endpoints
+   */
+
+  async getUsers(params?: { page?: number; limit?: number; search?: string }) {
+    const response = await this.client.get<ApiResponse<PaginatedUsersResponse>>('/api/users', { params });
+    return response.data;
+  }
+
+  async createUser(name: string, email: string) {
+    const response = await this.client.post<ApiResponse<CreateUserResponse>>('/api/users', {
+      name,
+      email,
+    });
+    return response.data;
+  }
+
+  async getUserById(id: string) {
+    const response = await this.client.get<ApiResponse<UserSafe>>(`/api/users/${id}`);
+    return response.data;
+  }
+
+  async updateUser(id: string, data: { name?: string; email?: string }) {
+    const response = await this.client.put<ApiResponse<UserSafe>>(`/api/users/${id}`, data);
+    return response.data;
+  }
+
+  async deleteUser(id: string) {
+    const response = await this.client.delete<ApiResponse<void>>(`/api/users/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Error Handler Helper
+   *
+   * Extracts error message from axios error response
+   */
+  getErrorMessage(error: unknown): string {
+    if (axios.isAxiosError(error)) {
+      return error.response?.data?.error || error.message || 'An error occurred';
     }
+    return error instanceof Error ? error.message : 'An unknown error occurred';
+  }
+}
 
-    // Parse the JSON response body
-    // We use the ApiResponse wrapper type to ensure type safety
-    const data: ApiResponse<HelloWorldResponse> = await response.json();
-
-    // Validate that the response contains successful data
-    // The backend might return HTTP 200 but with success: false
-    if (!data.success || !data.data) {
-      throw new Error(data.error || 'Unknown error occurred');
-    }
-
-    // Return only the data portion (unwrap from ApiResponse)
-    // This makes it easier for components to work with the data
-    return data.data;
-  },
-};
+// Export singleton instance
+export const api = new ApiClient();
