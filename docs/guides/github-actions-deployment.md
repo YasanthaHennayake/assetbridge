@@ -456,13 +456,13 @@ When you push to `release` branch:
 2. **Deploy Backend Job** runs in parallel after tests pass:
    - Installs Heroku CLI
    - Configures authentication
-   - Uses `Procfile` (backend configuration)
+   - Copies `Procfile.backend` to `Procfile` for backend deployment
    - Pushes to backend Heroku app
 3. **Deploy Frontend Job** runs in parallel after tests pass:
    - Installs Heroku CLI
    - Configures authentication
    - Sets frontend environment variables
-   - Uses `Procfile.frontend` (frontend configuration)
+   - Copies `Procfile.frontend` to `Procfile` for frontend deployment
    - Pushes to frontend Heroku app
 
 Both deployments happen **simultaneously** for faster deployment.

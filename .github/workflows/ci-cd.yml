@@ -122,9 +122,18 @@ jobs:
           EOF
           chmod 600 ~/.netrc
 
-      # Step 4: Deploy Backend to Heroku
+      # Step 4: Prepare Backend Procfile
+      # Copy Procfile.backend to Procfile for backend deployment
+      - name: Prepare Backend Procfile
+        run: |
+          cp Procfile.backend Procfile
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Procfile
+          git commit -m "Use backend Procfile for deployment [skip ci]" || echo "No changes to commit"
+
+      # Step 5: Deploy Backend to Heroku
       # Uses Heroku CLI to deploy the backend application
-      # Uses default Procfile which runs the backend
       - name: Deploy Backend to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
