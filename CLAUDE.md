@@ -199,12 +199,18 @@ Bug tracking and debugging documentation:
 ### Sprint Planning (`docs/sprints/`)
 Sprint planning and progress documentation:
 - `SPRINT1.md` - Initial sprint (infrastructure setup)
+- `SPRINT2.md` - User authentication and password management
 
 ### Requirements (`docs/srs/`)
 Software Requirements Specification documents and system requirements.
 
 ### Features (`docs/features/`)
 Feature specifications and detailed feature documentation.
+
+### Releases (`docs/releases/`)
+Release notes and version documentation:
+- `RELEASE_v0.2.0.md` - Sprint 2 release (User Authentication)
+- Future release notes will be added here
 
 **Rule for Future Development**: When creating new documentation, place it in the appropriate subfolder under `docs/` and reference it here in CLAUDE.md.
 
@@ -239,7 +245,8 @@ assetbridge/
 │   │   └── README.md     # Bug tracking process
 │   ├── sprints/          # Sprint planning documents
 │   ├── srs/              # Software Requirements Specification
-│   └── features/         # Feature specifications
+│   ├── features/         # Feature specifications
+│   └── releases/         # Release notes and version documentation
 ├── .github/
 │   └── workflows/        # GitHub Actions CI/CD
 ├── package.json          # Root package (workspace config)
