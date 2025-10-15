@@ -134,12 +134,13 @@ jobs:
 
       # Step 5: Deploy Backend to Heroku
       # Uses Heroku CLI to deploy the backend application
+      # Force push to override any remote changes
       - name: Deploy Backend to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
           heroku git:remote -a ${{ secrets.HEROKU_BACKEND_APP_NAME }}
-          git push heroku release:main
+          git push heroku release:main --force
 
   # Job 3: Deploy Frontend to Heroku
   deploy-frontend:
